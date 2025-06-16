@@ -13,6 +13,8 @@ const char TILE_CHARS[TILE_TYPES] = { '#', '@', '$', '%', '&' };
 
 char board[BOARD_SIZE * BOARD_SIZE];
 
+Vector2 gridOrigin;
+
 char random_tile(void);
 void init_board(void);
 
@@ -34,8 +36,8 @@ int main(void) {
             for(int x = 0; x < BOARD_SIZE; x++) {
                 for(int y = 0; y < BOARD_SIZE; y++) {
                     Rectangle rect = {
-                        .x = x*TILE_SIZE,
-                        .y = y*TILE_SIZE,
+                        .x = gridOrigin.x +(x*TILE_SIZE),
+                        .y = gridOrigin.y + (y*TILE_SIZE),
                         .width = TILE_SIZE,
                         .height = TILE_SIZE,
                     };
@@ -76,4 +78,12 @@ void init_board() {
             board[(BOARD_SIZE * y) + x] = random_tile();
         }
     }
+
+    int gridWidth = BOARD_SIZE * TILE_SIZE;
+    int gridHeight = BOARD_SIZE * TILE_SIZE;
+
+    gridOrigin = (Vector2) {
+        .x = (GetScreenWidth() - gridWidth) / 2,
+        .y = (GetScreenHeight() - gridHeight) / 2,
+    };
 }
