@@ -12,6 +12,7 @@
 const int SCORE_FONT_SIZE = 32;
 const char TILE_CHARS[TILE_TYPES] = { '#', '@', '$', '%', '&' };
 char board[BOARD_SIZE * BOARD_SIZE];
+bool matched[BOARD_SIZE * BOARD_SIZE] = { 0 };
 
 int score = 0;
 Vector2 selectedTile = { -1,-1 };
@@ -22,6 +23,7 @@ Font scoreFont;
 
 char random_tile(void);
 void init_board(void);
+bool find_matches(void);
 
 int main(void) {
     SetRandomSeed(time(NULL));
@@ -48,6 +50,8 @@ int main(void) {
                 selectedTile = (Vector2) { x, y };
             }
         }
+
+        find_matches();
 
         BeginDrawing();
         {
@@ -86,7 +90,8 @@ int main(void) {
                         GetFontDefault(), 
                         TextFormat("%c", board[(BOARD_SIZE * y) + x]),
                         (Vector2) { rect.x + 12, rect.y +8 },
-                        20.f, 1, WHITE
+                        20.f, 1, 
+                        matched[(y*BOARD_SIZE) + x] ? GREEN : WHITE
                     );
                 }
             }
@@ -139,4 +144,48 @@ void init_board() {
         .x = (GetScreenWidth() - gridWidth) / 2,
         .y = (GetScreenHeight() - gridHeight) / 2,
     };
+}
+
+bool find_matches() {
+    bool found = false;
+
+    for(int x=0; x<BOARD_SIZE; x++) {
+        for(int y=0; y<BOARD_SIZE; y++) {
+            matched[(y*BOARD_SIZE) + x] = false;
+        }
+    }
+
+    for(int x=0; x<BOARD_SIZE - 2; x++) {
+        for(int y=0; y<BOARD_SIZE; y++) {
+
+            char t = board[(y*BOARD_SIZE) + x];
+
+            if(
+                t == board[(y*BOARD_SIZE) + (x+1)] &&
+                t == board[(y*BOARD_SIZE) + (x+2)]
+            ) {
+                matched[(y*BOARD_SIZE) + x] = matched[(y*BOARD_SIZE) + (x+1)] = matched[(y*BOARD_SIZE) + (x+2)] = true;
+                score +=10;
+                found = true;
+            }
+        }
+    }
+
+    for(int x=0; x<BOARD_SIZE; x++) {
+        for(int y=0; y<BOARD_SIZE - 2; y++) { 
+
+            char t = board[(y*BOARD_SIZE) + x];
+
+            if(
+                t == board[((y+1)*BOARD_SIZE) + x] &&
+                t == board[((y+2)*BOARD_SIZE) + x]
+            ) {
+                matched[(y*BOARD_SIZE) + x] = matched[((y+1)*BOARD_SIZE) + x] = matched[((y+2)*BOARD_SIZE) + x] = true;
+                score +=10;
+                found = true;
+            }
+        }
+    }
+
+    return found;
 }
