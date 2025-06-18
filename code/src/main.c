@@ -14,6 +14,7 @@ const char TILE_CHARS[TILE_TYPES] = { '#', '@', '$', '%', '&' };
 char board[BOARD_SIZE * BOARD_SIZE];
 
 int score = 0;
+Vector2 selectedTile = { -1,-1 };
 
 Vector2 gridOrigin;
 Texture2D background;
@@ -34,8 +35,20 @@ int main(void) {
     scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
 
     init_board();
+    Vector2 mouseCoords = { 0 };
 
     while(!WindowShouldClose()) {
+
+        mouseCoords = GetMousePosition();
+        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            int x = (mouseCoords.x - gridOrigin.x)/TILE_SIZE;
+            int y = (mouseCoords.y - gridOrigin.y)/TILE_SIZE;
+
+            if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
+                selectedTile = (Vector2) { x, y };
+            }
+        }
+
         BeginDrawing();
         {
             ClearBackground(RAYWHITE);
@@ -84,6 +97,17 @@ int main(void) {
                 (Vector2) { 20, 20 },
                 SCORE_FONT_SIZE, 1.f, YELLOW
             );
+
+            if (selectedTile.x >= 0) {
+                DrawRectangleLinesEx(
+                    (Rectangle) {
+                        .x = gridOrigin.x +(selectedTile.x*TILE_SIZE),
+                        .y = gridOrigin.y + (selectedTile.y*TILE_SIZE),
+                        .width = TILE_SIZE,
+                        .height = TILE_SIZE,
+                    }, 2, YELLOW
+                );
+            }
         }
         EndDrawing();
     }
