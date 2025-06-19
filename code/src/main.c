@@ -24,6 +24,7 @@ Font scoreFont;
 char random_tile(void);
 void init_board(void);
 bool find_matches(void);
+void resolve_matches(void);
 
 int main(void) {
     SetRandomSeed(time(NULL));
@@ -51,7 +52,9 @@ int main(void) {
             }
         }
 
-        find_matches();
+        if(find_matches()) {
+            resolve_matches();
+        }
 
         BeginDrawing();
         {
@@ -188,4 +191,23 @@ bool find_matches() {
     }
 
     return found;
+}
+
+
+void resolve_matches() {
+    for(int x=0; x<BOARD_SIZE; x++) {
+        int writeY = BOARD_SIZE-1;
+        for(int y=BOARD_SIZE-1; y>=0; y--) {
+            if(!matched[(y*BOARD_SIZE) + x]) {
+                board[(writeY*BOARD_SIZE) + x] = board[(y*BOARD_SIZE) + x];
+                writeY--;
+            }
+
+            while(writeY >=0) {
+                board[(writeY*BOARD_SIZE) + x] = random_tile();
+                writeY--;
+            }
+        }
+    }
+    
 }
