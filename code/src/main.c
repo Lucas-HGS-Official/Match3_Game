@@ -10,9 +10,12 @@
 #define TILE_TYPES 5
 
 const int SCORE_FONT_SIZE = 32;
+
 const char TILE_CHARS[TILE_TYPES] = { '#', '@', '$', '%', '&' };
+
 char board[BOARD_SIZE * BOARD_SIZE];
 bool matched[BOARD_SIZE * BOARD_SIZE] = { 0 };
+float fallOffset[BOARD_SIZE * BOARD_SIZE] = { 0 };
 
 int score = 0;
 Vector2 selectedTile = { -1,-1 };
@@ -20,6 +23,7 @@ Vector2 selectedTile = { -1,-1 };
 Vector2 gridOrigin;
 Texture2D background;
 Font scoreFont;
+float fallSpeed = 8.f;
 
 char random_tile(void);
 void init_board(void);
@@ -49,6 +53,15 @@ int main(void) {
 
             if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
                 selectedTile = (Vector2) { x, y };
+            }
+        }
+
+        for(int y=0; y<BOARD_SIZE; y++) {
+            for(int x=0; x<BOARD_SIZE; x++) {
+                if(fallOffset[(y*BOARD_SIZE) + x] > 0) {
+                    fallOffset[(y*BOARD_SIZE) + x] -= fallSpeed;
+                    if(fallOffset[(y*BOARD_SIZE) + x] < 0) {fallOffset[(y*BOARD_SIZE) + x] = 0; }
+                }
             }
         }
 
@@ -84,18 +97,18 @@ int main(void) {
 
                     DrawRectangleLinesEx(rect, 1, DARKGRAY);
 
-                    Vector2 pos = {
-                        .x = x*TILE_SIZE +12,
-                        .y = y*TILE_SIZE +8,
-                    };
-
-                    DrawTextEx(
-                        GetFontDefault(), 
-                        TextFormat("%c", board[(BOARD_SIZE * y) + x]),
-                        (Vector2) { rect.x + 12, rect.y +8 },
-                        20.f, 1, 
-                        matched[(y*BOARD_SIZE) + x] ? GREEN : WHITE
-                    );
+                    if(board[(y*BOARD_SIZE) + x] != ' ') {
+                        DrawTextEx(
+                            GetFontDefault(), 
+                            TextFormat("%c", board[(BOARD_SIZE * y) + x]),
+                            (Vector2) {
+                                rect.x + 12,
+                                rect.y + 8 -fallOffset[(BOARD_SIZE * y) + x],
+                            },
+                            20.f, 1, 
+                            matched[(y*BOARD_SIZE) + x] ? GREEN : WHITE
+                        );
+                    }
                 }
             }
 
@@ -199,15 +212,19 @@ void resolve_matches() {
         int writeY = BOARD_SIZE-1;
         for(int y=BOARD_SIZE-1; y>=0; y--) {
             if(!matched[(y*BOARD_SIZE) + x]) {
-                board[(writeY*BOARD_SIZE) + x] = board[(y*BOARD_SIZE) + x];
-                writeY--;
-            }
-
-            while(writeY >=0) {
-                board[(writeY*BOARD_SIZE) + x] = random_tile();
+                if(y != writeY) {
+                    board[(writeY*BOARD_SIZE) + x] = board[(y*BOARD_SIZE) + x];
+                    fallOffset[(writeY*BOARD_SIZE) + x] = (writeY - y) * TILE_SIZE;
+                    board[(y*BOARD_SIZE) + x] = ' ';
+                }
                 writeY--;
             }
         }
-    }
-    
+
+        while(writeY >=0) {
+            board[(writeY*BOARD_SIZE) + x] = random_tile();
+            fallOffset[(writeY*BOARD_SIZE) + x] = (writeY + 1) * TILE_SIZE;
+            writeY--;
+        }
+    } 
 }
