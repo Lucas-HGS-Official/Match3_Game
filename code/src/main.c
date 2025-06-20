@@ -29,6 +29,8 @@ char random_tile(void);
 void init_board(void);
 bool find_matches(void);
 void resolve_matches(void);
+void swap_tiles(int x1, int y1, int x2, int y2);
+bool are_tiles_adjancent(Vector2 a, Vector2 b);
 
 int main(void) {
     SetRandomSeed(time(NULL));
@@ -52,7 +54,20 @@ int main(void) {
             int y = (mouseCoords.y - gridOrigin.y)/TILE_SIZE;
 
             if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
-                selectedTile = (Vector2) { x, y };
+                Vector2 currentTile = (Vector2) { x, y };
+                if(selectedTile.x < 0) {
+                    selectedTile = currentTile;
+                } else {
+                    if(are_tiles_adjancent(selectedTile, currentTile)) {
+                        swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
+                        if(find_matches()) {
+                            resolve_matches();
+                        } else {
+                            swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
+                        }
+                    }
+                    selectedTile = (Vector2) { -1, -1 };
+                } 
             }
         }
 
@@ -206,7 +221,6 @@ bool find_matches() {
     return found;
 }
 
-
 void resolve_matches() {
     for(int x=0; x<BOARD_SIZE; x++) {
         int writeY = BOARD_SIZE-1;
@@ -227,4 +241,14 @@ void resolve_matches() {
             writeY--;
         }
     } 
+}
+
+void swap_tiles(int x1, int y1, int x2, int y2) {
+    char temp = board[(y1*BOARD_SIZE) + x1];
+    board[(y1*BOARD_SIZE) + x1] = board[(y2*BOARD_SIZE) + x2];
+    board[(y2*BOARD_SIZE) + x2] = temp;
+}
+
+bool are_tiles_adjancent(Vector2 a, Vector2 b) {
+    return (abs((int)a.x - (int)b.x) + abs((int)a.y - (int)b.y)) == 1;
 }
