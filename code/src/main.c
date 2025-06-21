@@ -9,7 +9,14 @@
 #define TILE_SIZE 42
 #define TILE_TYPES 5
 
+typedef enum {
+    STATE_IDLE,
+    STATE_ANIMATING,
+    STATE_MATCH_DELAY,
+} TileState_t;
+
 const int SCORE_FONT_SIZE = 32;
+const float MATCH_DELAY_DURATION = 0.2f;
 
 const char TILE_CHARS[TILE_TYPES] = { '#', '@', '$', '%', '&' };
 
@@ -19,11 +26,12 @@ float fallOffset[BOARD_SIZE * BOARD_SIZE] = { 0 };
 
 int score = 0;
 Vector2 selectedTile = { -1,-1 };
-
 Vector2 gridOrigin;
 Texture2D background;
 Font scoreFont;
 float fallSpeed = 8.f;
+TileState_t tileState;
+float matchDelayTimer = 0.f;
 
 char random_tile(void);
 void init_board(void);
@@ -49,15 +57,17 @@ int main(void) {
     while(!WindowShouldClose()) {
 
         mouseCoords = GetMousePosition();
-        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && tileState == STATE_IDLE) {
             int x = (mouseCoords.x - gridOrigin.x)/TILE_SIZE;
             int y = (mouseCoords.y - gridOrigin.y)/TILE_SIZE;
 
             if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
                 Vector2 currentTile = (Vector2) { x, y };
+
                 if(selectedTile.x < 0) {
                     selectedTile = currentTile;
                 } else {
+
                     if(are_tiles_adjancent(selectedTile, currentTile)) {
                         swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
                         if(find_matches()) {
@@ -66,22 +76,47 @@ int main(void) {
                             swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
                         }
                     }
+
                     selectedTile = (Vector2) { -1, -1 };
                 } 
             }
         }
 
-        for(int y=0; y<BOARD_SIZE; y++) {
-            for(int x=0; x<BOARD_SIZE; x++) {
-                if(fallOffset[(y*BOARD_SIZE) + x] > 0) {
-                    fallOffset[(y*BOARD_SIZE) + x] -= fallSpeed;
-                    if(fallOffset[(y*BOARD_SIZE) + x] < 0) {fallOffset[(y*BOARD_SIZE) + x] = 0; }
+        if(tileState == STATE_ANIMATING) {
+            bool stillAnimating = false;
+            
+            for(int y=0; y<BOARD_SIZE; y++) {
+                for(int x=0; x<BOARD_SIZE; x++) {
+
+                    if(fallOffset[(y*BOARD_SIZE) + x] > 0) {
+                        fallOffset[(y*BOARD_SIZE) + x] -= fallSpeed;
+
+                        if(fallOffset[(y*BOARD_SIZE) + x] < 0) {
+                            fallOffset[(y*BOARD_SIZE) + x] = 0;
+                        } else {
+                            stillAnimating = true;
+                        }
+                    }
                 }
+            }
+
+            if(!stillAnimating) {
+                tileState = STATE_MATCH_DELAY;
+                matchDelayTimer = MATCH_DELAY_DURATION;
             }
         }
 
-        if(find_matches()) {
-            resolve_matches();
+        if(tileState == STATE_MATCH_DELAY) {
+            matchDelayTimer -= GetFrameTime();
+
+            if(matchDelayTimer <= 0.f) {
+                
+                if(find_matches()) {
+                    resolve_matches();
+                } else {
+                    tileState = STATE_IDLE;
+                }
+            }
         }
 
         BeginDrawing();
@@ -175,6 +210,12 @@ void init_board() {
         .x = (GetScreenWidth() - gridWidth) / 2,
         .y = (GetScreenHeight() - gridHeight) / 2,
     };
+    
+    if(find_matches()) {
+        resolve_matches();
+    } else {
+        tileState = STATE_IDLE;
+    }
 }
 
 bool find_matches() {
@@ -240,7 +281,9 @@ void resolve_matches() {
             fallOffset[(writeY*BOARD_SIZE) + x] = (writeY + 1) * TILE_SIZE;
             writeY--;
         }
-    } 
+    }
+
+    tileState = STATE_ANIMATING;
 }
 
 void swap_tiles(int x1, int y1, int x2, int y2) {
