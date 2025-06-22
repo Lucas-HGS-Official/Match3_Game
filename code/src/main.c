@@ -32,6 +32,8 @@ Font scoreFont;
 float fallSpeed = 8.f;
 TileState_t tileState;
 float matchDelayTimer = 0.f;
+Music bgm;
+Sound matchSFX;
 
 char random_tile(void);
 void init_board(void);
@@ -48,13 +50,21 @@ int main(void) {
     InitWindow(screenWidth, screenHeight, "Match3");
     SetTargetFPS(60);
 
+    InitAudioDevice();
+
     background = LoadTexture("resources/background.jpg");
     scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
+    bgm = LoadMusicStream("resources/prismx27s-edge-246705.mp3");
+    matchSFX = LoadSound("resources/match.mp3");
+
+    PlayMusicStream(bgm);
 
     init_board();
     Vector2 mouseCoords = { 0 };
 
     while(!WindowShouldClose()) {
+
+        UpdateMusicStream(bgm);
 
         mouseCoords = GetMousePosition();
         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && tileState == STATE_IDLE) {
@@ -136,6 +146,14 @@ int main(void) {
                 WHITE
             );
 
+            DrawRectangle(
+                gridOrigin.x,
+                gridOrigin.y,
+                BOARD_SIZE * TILE_SIZE,
+                BOARD_SIZE * TILE_SIZE,
+                Fade(DARKGRAY, .6f)
+            );
+
             for(int x = 0; x < BOARD_SIZE; x++) {
                 for(int y = 0; y < BOARD_SIZE; y++) {
                     Rectangle rect = {
@@ -183,8 +201,14 @@ int main(void) {
         EndDrawing();
     }
 
+    StopMusicStream(bgm);
+    UnloadMusicStream(bgm);
+    UnloadSound(matchSFX);
     UnloadTexture(background);
     UnloadFont(scoreFont);
+
+
+    CloseAudioDevice();
     CloseWindow();
 
     return 0;
@@ -239,6 +263,7 @@ bool find_matches() {
                 matched[(y*BOARD_SIZE) + x] = matched[(y*BOARD_SIZE) + (x+1)] = matched[(y*BOARD_SIZE) + (x+2)] = true;
                 score +=10;
                 found = true;
+                PlaySound(matchSFX);
             }
         }
     }
@@ -255,6 +280,7 @@ bool find_matches() {
                 matched[(y*BOARD_SIZE) + x] = matched[((y+1)*BOARD_SIZE) + x] = matched[((y+2)*BOARD_SIZE) + x] = true;
                 score +=10;
                 found = true;
+                PlaySound(matchSFX);
             }
         }
     }
