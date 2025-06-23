@@ -8,12 +8,21 @@
 #define BOARD_SIZE 8
 #define TILE_SIZE 42
 #define TILE_TYPES 5
+#define MAX_SCORE_POPUPS 32
 
 typedef enum {
     STATE_IDLE,
     STATE_ANIMATING,
     STATE_MATCH_DELAY,
 } TileState_t;
+
+typedef struct {
+    Vector2 pos;
+    int amount;
+    float lifetime;
+    float alpha;
+    bool isActive;
+} ScorePopup_t;
 
 const int SCORE_FONT_SIZE = 32;
 const float MATCH_DELAY_DURATION = 0.2f;
@@ -25,15 +34,16 @@ bool matched[BOARD_SIZE * BOARD_SIZE] = { 0 };
 float fallOffset[BOARD_SIZE * BOARD_SIZE] = { 0 };
 
 int score = 0;
+float fallSpeed = 8.f;
+float matchDelayTimer = 0.f;
 Vector2 selectedTile = { -1,-1 };
 Vector2 gridOrigin;
 Texture2D background;
 Font scoreFont;
-float fallSpeed = 8.f;
-TileState_t tileState;
-float matchDelayTimer = 0.f;
 Music bgm;
 Sound matchSFX;
+TileState_t tileState;
+ScorePopup_t scorePopups[MAX_SCORE_POPUPS] = { 0 };
 
 char random_tile(void);
 void init_board(void);
@@ -41,6 +51,7 @@ bool find_matches(void);
 void resolve_matches(void);
 void swap_tiles(int x1, int y1, int x2, int y2);
 bool are_tiles_adjancent(Vector2 a, Vector2 b);
+void add_score_popup(int x,int y,int amount, Vector2 gridOrigin);
 
 int main(void) {
     SetRandomSeed(time(NULL));
@@ -129,6 +140,18 @@ int main(void) {
             }
         }
 
+        for(int i=0;i<MAX_SCORE_POPUPS; i++) {
+            if(scorePopups[i].isActive) {
+                scorePopups[i].lifetime -= GetFrameTime();
+                scorePopups[i].pos.y -= 30*GetFrameTime();
+                scorePopups[i].alpha = scorePopups[i].lifetime;
+
+                if(scorePopups[i].lifetime <= 0.f) {
+                    scorePopups[i].isActive = false;
+                }
+            }
+        }
+
         BeginDrawing();
         {
             ClearBackground(RAYWHITE);
@@ -197,6 +220,19 @@ int main(void) {
                     }, 2, YELLOW
                 );
             }
+
+            for(int i=0;i<MAX_SCORE_POPUPS;i++) {
+                if(scorePopups[i].isActive) {
+                    Color c = Fade(YELLOW, scorePopups[i].alpha);
+                    DrawText(
+                        TextFormat("+%d", scorePopups[i].amount),
+                        scorePopups[i].pos.x,
+                        scorePopups[i].pos.y,
+                        20,
+                        c
+                    );
+                }
+            }
         }
         EndDrawing();
     }
@@ -264,6 +300,8 @@ bool find_matches() {
                 score +=10;
                 found = true;
                 PlaySound(matchSFX);
+
+                add_score_popup(x, y, 10, gridOrigin);
             }
         }
     }
@@ -281,6 +319,8 @@ bool find_matches() {
                 score +=10;
                 found = true;
                 PlaySound(matchSFX);
+
+                add_score_popup(x, y, 10, gridOrigin);
             }
         }
     }
@@ -320,4 +360,20 @@ void swap_tiles(int x1, int y1, int x2, int y2) {
 
 bool are_tiles_adjancent(Vector2 a, Vector2 b) {
     return (abs((int)a.x - (int)b.x) + abs((int)a.y - (int)b.y)) == 1;
+}
+
+void add_score_popup(int x,int y,int amount, Vector2 gridOrigin) {
+    for(int i=0; i<MAX_SCORE_POPUPS; i++) {
+        if(!scorePopups[i].isActive) {
+            scorePopups[i] = (ScorePopup_t) {
+                .pos.x = gridOrigin.x + x * TILE_SIZE + TILE_SIZE / 2,
+                .pos.y = gridOrigin.y + y * TILE_SIZE + TILE_SIZE / 2,
+                .amount = amount,
+                .lifetime = 1.f,
+                .alpha = 1.f,
+                .isActive = true,
+            };
+            break;
+        }
+    }
 }
