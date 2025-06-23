@@ -36,6 +36,9 @@ float fallOffset[BOARD_SIZE * BOARD_SIZE] = { 0 };
 int score = 0;
 float fallSpeed = 8.f;
 float matchDelayTimer = 0.f;
+float scoreScale = 1.f;
+float scoreScaleVel = 0.f;
+bool isScoreAnimating = false;
 Vector2 selectedTile = { -1,-1 };
 Vector2 gridOrigin;
 Texture2D background;
@@ -152,6 +155,14 @@ int main(void) {
             }
         }
 
+        if(isScoreAnimating) {
+            scoreScale += scoreScaleVel * GetFrameTime();
+            if(scoreScale <= 1.f) {
+                scoreScale = 1.f;
+                isScoreAnimating = false;
+            }
+        }
+
         BeginDrawing();
         {
             ClearBackground(RAYWHITE);
@@ -207,7 +218,7 @@ int main(void) {
                 scoreFont,
                 TextFormat("SCORE: %d", score),
                 (Vector2) { 20, 20 },
-                SCORE_FONT_SIZE, 1.f, YELLOW
+                SCORE_FONT_SIZE * scoreScale, 1.f, YELLOW
             );
 
             if (selectedTile.x >= 0) {
@@ -301,6 +312,10 @@ bool find_matches() {
                 found = true;
                 PlaySound(matchSFX);
 
+                isScoreAnimating = true;
+                scoreScale = 2.f;
+                scoreScaleVel = -2.5f;
+
                 add_score_popup(x, y, 10, gridOrigin);
             }
         }
@@ -319,6 +334,10 @@ bool find_matches() {
                 score +=10;
                 found = true;
                 PlaySound(matchSFX);
+
+                isScoreAnimating = true;
+                scoreScale = 1.75f;
+                scoreScaleVel = -2.5f;
 
                 add_score_popup(x, y, 10, gridOrigin);
             }
