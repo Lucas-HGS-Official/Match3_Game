@@ -60,7 +60,8 @@ void game_setup(void);
 void game_loop(void);
 void game_exit(void);
 
-void game_update();
+void game_update(void);
+void game_render(void);
 
 
 int main(void) {
@@ -237,90 +238,11 @@ void game_loop(void) {
     while(!WindowShouldClose()) {
 
         game_update();
+
+
+        game_render();
         
-        BeginDrawing();
-        {
-            ClearBackground(RAYWHITE);
-
-            DrawTexturePro(
-                background,
-                (Rectangle) {
-                    0,0, background.width, background.height,
-                },
-                (Rectangle) {
-                    0,0, GetScreenWidth(), GetScreenHeight(),
-                },
-                (Vector2) { 0,0 },
-                0.f,
-                WHITE
-            );
-
-            DrawRectangle(
-                gridOrigin.x,
-                gridOrigin.y,
-                BOARD_SIZE * TILE_SIZE,
-                BOARD_SIZE * TILE_SIZE,
-                Fade(DARKGRAY, .6f)
-            );
-
-            for(int x = 0; x < BOARD_SIZE; x++) {
-                for(int y = 0; y < BOARD_SIZE; y++) {
-                    Rectangle rect = {
-                        .x = gridOrigin.x +(x*TILE_SIZE),
-                        .y = gridOrigin.y + (y*TILE_SIZE),
-                        .width = TILE_SIZE,
-                        .height = TILE_SIZE,
-                    };
-
-                    DrawRectangleLinesEx(rect, 1, DARKGRAY);
-
-                    if(board[(y*BOARD_SIZE) + x] != ' ') {
-                        DrawTextEx(
-                            GetFontDefault(), 
-                            TextFormat("%c", board[(BOARD_SIZE * y) + x]),
-                            (Vector2) {
-                                rect.x + 12,
-                                rect.y + 8 -fallOffset[(BOARD_SIZE * y) + x],
-                            },
-                            20.f, 1, 
-                            matched[(y*BOARD_SIZE) + x] ? GREEN : WHITE
-                        );
-                    }
-                }
-            }
-
-            DrawTextEx(
-                scoreFont,
-                TextFormat("SCORE: %d", score),
-                (Vector2) { 20, 20 },
-                SCORE_FONT_SIZE * scoreScale, 1.f, YELLOW
-            );
-
-            if (selectedTile.x >= 0) {
-                DrawRectangleLinesEx(
-                    (Rectangle) {
-                        .x = gridOrigin.x +(selectedTile.x*TILE_SIZE),
-                        .y = gridOrigin.y + (selectedTile.y*TILE_SIZE),
-                        .width = TILE_SIZE,
-                        .height = TILE_SIZE,
-                    }, 2, YELLOW
-                );
-            }
-
-            for(int i=0;i<MAX_SCORE_POPUPS;i++) {
-                if(scorePopups[i].isActive) {
-                    Color c = Fade(YELLOW, scorePopups[i].alpha);
-                    DrawText(
-                        TextFormat("+%d", scorePopups[i].amount),
-                        scorePopups[i].pos.x,
-                        scorePopups[i].pos.y,
-                        20,
-                        c
-                    );
-                }
-            }
-        }
-        EndDrawing();
+        
     }
 }
 
@@ -424,4 +346,91 @@ void game_update() {
             isScoreAnimating = false;
         }
     }
+}
+
+void game_render(void) {
+
+    BeginDrawing();
+
+    ClearBackground(RAYWHITE);
+
+    DrawTexturePro(
+        background,
+        (Rectangle) {
+            0,0, background.width, background.height,
+        },
+        (Rectangle) {
+            0,0, GetScreenWidth(), GetScreenHeight(),
+        },
+        (Vector2) { 0,0 },
+        0.f,
+        WHITE
+    );
+
+    DrawRectangle(
+        gridOrigin.x,
+        gridOrigin.y,
+        BOARD_SIZE * TILE_SIZE,
+        BOARD_SIZE * TILE_SIZE,
+        Fade(DARKGRAY, .6f)
+    );
+
+    for(int x = 0; x < BOARD_SIZE; x++) {
+        for(int y = 0; y < BOARD_SIZE; y++) {
+            Rectangle rect = {
+                .x = gridOrigin.x +(x*TILE_SIZE),
+                .y = gridOrigin.y + (y*TILE_SIZE),
+                .width = TILE_SIZE,
+                .height = TILE_SIZE,
+            };
+
+            DrawRectangleLinesEx(rect, 1, DARKGRAY);
+
+            if(board[(y*BOARD_SIZE) + x] != ' ') {
+                DrawTextEx(
+                    GetFontDefault(), 
+                    TextFormat("%c", board[(BOARD_SIZE * y) + x]),
+                    (Vector2) {
+                        rect.x + 12,
+                        rect.y + 8 -fallOffset[(BOARD_SIZE * y) + x],
+                    },
+                    20.f, 1, 
+                    matched[(y*BOARD_SIZE) + x] ? GREEN : WHITE
+                );
+            }
+        }
+    }
+
+    DrawTextEx(
+        scoreFont,
+        TextFormat("SCORE: %d", score),
+        (Vector2) { 20, 20 },
+        SCORE_FONT_SIZE * scoreScale, 1.f, YELLOW
+    );
+
+    if (selectedTile.x >= 0) {
+        DrawRectangleLinesEx(
+            (Rectangle) {
+                .x = gridOrigin.x +(selectedTile.x*TILE_SIZE),
+                .y = gridOrigin.y + (selectedTile.y*TILE_SIZE),
+                .width = TILE_SIZE,
+                .height = TILE_SIZE,
+            }, 2, YELLOW
+        );
+    }
+
+    for(int i=0;i<MAX_SCORE_POPUPS;i++) {
+        if(scorePopups[i].isActive) {
+            Color c = Fade(YELLOW, scorePopups[i].alpha);
+            DrawText(
+                TextFormat("+%d", scorePopups[i].amount),
+                scorePopups[i].pos.x,
+                scorePopups[i].pos.y,
+                20,
+                c
+            );
+        }
+    }
+
+    EndDrawing();
 }
