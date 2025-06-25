@@ -56,24 +56,11 @@ void swap_tiles(int x1, int y1, int x2, int y2);
 bool are_tiles_adjancent(Vector2 a, Vector2 b);
 void add_score_popup(int x,int y,int amount, Vector2 gridOrigin);
 
+void game_setup(void);
+
 int main(void) {
-    SetRandomSeed(time(NULL));
-    const int screenWidth = 800;
-    const int screenHeight = 450;
 
-    InitWindow(screenWidth, screenHeight, "Match3");
-    SetTargetFPS(60);
-
-    InitAudioDevice();
-
-    background = LoadTexture("resources/background.jpg");
-    scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
-    bgm = LoadMusicStream("resources/prismx27s-edge-246705.mp3");
-    matchSFX = LoadSound("resources/match.mp3");
-
-    PlayMusicStream(bgm);
-
-    init_board();
+    game_setup();
     Vector2 mouseCoords = { 0 };
 
     while(!WindowShouldClose()) {
@@ -395,4 +382,25 @@ void add_score_popup(int x,int y,int amount, Vector2 gridOrigin) {
             break;
         }
     }
+}
+
+void game_setup(void) {
+
+    SetRandomSeed(time(NULL));
+    const int screenWidth = 800;
+    const int screenHeight = 450;
+
+    InitWindow(screenWidth, screenHeight, "Match3");
+    SetTargetFPS(60);
+
+    InitAudioDevice();
+
+    background = LoadTexture("resources/background.jpg");
+    scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
+    bgm = LoadMusicStream("resources/prismx27s-edge-246705.mp3");
+    matchSFX = LoadSound("resources/match.mp3");
+
+    PlayMusicStream(bgm);
+
+    init_board();
 }
