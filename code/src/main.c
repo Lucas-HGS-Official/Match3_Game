@@ -60,6 +60,8 @@ void game_setup(void);
 void game_loop(void);
 void game_exit(void);
 
+void game_update();
+
 
 int main(void) {
 
@@ -231,95 +233,11 @@ void game_setup(void) {
 
 void game_loop(void) {
 
-    Vector2 mouseCoords = { 0 };
-
+    
     while(!WindowShouldClose()) {
 
-        UpdateMusicStream(bgm);
-
-        mouseCoords = GetMousePosition();
-        if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && tileState == STATE_IDLE) {
-            int x = (mouseCoords.x - gridOrigin.x)/TILE_SIZE;
-            int y = (mouseCoords.y - gridOrigin.y)/TILE_SIZE;
-
-            if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
-                Vector2 currentTile = (Vector2) { x, y };
-
-                if(selectedTile.x < 0) {
-                    selectedTile = currentTile;
-                } else {
-
-                    if(are_tiles_adjancent(selectedTile, currentTile)) {
-                        swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
-                        if(find_matches()) {
-                            resolve_matches();
-                        } else {
-                            swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
-                        }
-                    }
-
-                    selectedTile = (Vector2) { -1, -1 };
-                } 
-            }
-        }
-
-        if(tileState == STATE_ANIMATING) {
-            bool stillAnimating = false;
-            
-            for(int y=0; y<BOARD_SIZE; y++) {
-                for(int x=0; x<BOARD_SIZE; x++) {
-
-                    if(fallOffset[(y*BOARD_SIZE) + x] > 0) {
-                        fallOffset[(y*BOARD_SIZE) + x] -= fallSpeed;
-
-                        if(fallOffset[(y*BOARD_SIZE) + x] < 0) {
-                            fallOffset[(y*BOARD_SIZE) + x] = 0;
-                        } else {
-                            stillAnimating = true;
-                        }
-                    }
-                }
-            }
-
-            if(!stillAnimating) {
-                tileState = STATE_MATCH_DELAY;
-                matchDelayTimer = MATCH_DELAY_DURATION;
-            }
-        }
-
-        if(tileState == STATE_MATCH_DELAY) {
-            matchDelayTimer -= GetFrameTime();
-
-            if(matchDelayTimer <= 0.f) {
-                
-                if(find_matches()) {
-                    resolve_matches();
-                } else {
-                    tileState = STATE_IDLE;
-                }
-            }
-        }
-
-        for(int i=0;i<MAX_SCORE_POPUPS; i++) {
-            if(scorePopups[i].isActive) {
-                scorePopups[i].lifetime -= GetFrameTime();
-                scorePopups[i].pos.y -= 30*GetFrameTime();
-                scorePopups[i].alpha = scorePopups[i].lifetime;
-
-                if(scorePopups[i].lifetime <= 0.f) {
-                    scorePopups[i].isActive = false;
-                }
-            }
-        }
-
-        if(isScoreAnimating) {
-            scoreScale += scoreScaleVel * GetFrameTime();
-            if(scoreScale <= 1.f) {
-                scoreScale = 1.f;
-                isScoreAnimating = false;
-            }
-        }
-
+        game_update();
+        
         BeginDrawing();
         {
             ClearBackground(RAYWHITE);
@@ -416,4 +334,94 @@ void game_exit(void) {
 
     CloseAudioDevice();
     CloseWindow();
+}
+
+void game_update() {
+
+    Vector2 mouseCoords = { 0 };
+
+    UpdateMusicStream(bgm);
+
+    mouseCoords = GetMousePosition();
+    if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && tileState == STATE_IDLE) {
+        int x = (mouseCoords.x - gridOrigin.x)/TILE_SIZE;
+        int y = (mouseCoords.y - gridOrigin.y)/TILE_SIZE;
+
+        if(x>=0 && x<BOARD_SIZE  &&  y>=0 && y<BOARD_SIZE) {
+            Vector2 currentTile = (Vector2) { x, y };
+
+            if(selectedTile.x < 0) {
+                selectedTile = currentTile;
+            } else {
+
+                if(are_tiles_adjancent(selectedTile, currentTile)) {
+                    swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
+                    if(find_matches()) {
+                        resolve_matches();
+                    } else {
+                        swap_tiles(selectedTile.x, selectedTile.y, currentTile.x, currentTile.y);
+                    }
+                }
+
+                selectedTile = (Vector2) { -1, -1 };
+            } 
+        }
+    }
+
+    if(tileState == STATE_ANIMATING) {
+        bool stillAnimating = false;
+        
+        for(int y=0; y<BOARD_SIZE; y++) {
+            for(int x=0; x<BOARD_SIZE; x++) {
+
+                if(fallOffset[(y*BOARD_SIZE) + x] > 0) {
+                    fallOffset[(y*BOARD_SIZE) + x] -= fallSpeed;
+
+                    if(fallOffset[(y*BOARD_SIZE) + x] < 0) {
+                        fallOffset[(y*BOARD_SIZE) + x] = 0;
+                    } else {
+                        stillAnimating = true;
+                    }
+                }
+            }
+        }
+
+        if(!stillAnimating) {
+            tileState = STATE_MATCH_DELAY;
+            matchDelayTimer = MATCH_DELAY_DURATION;
+        }
+    }
+
+    if(tileState == STATE_MATCH_DELAY) {
+        matchDelayTimer -= GetFrameTime();
+
+        if(matchDelayTimer <= 0.f) {
+            
+            if(find_matches()) {
+                resolve_matches();
+            } else {
+                tileState = STATE_IDLE;
+            }
+        }
+    }
+
+    for(int i=0;i<MAX_SCORE_POPUPS; i++) {
+        if(scorePopups[i].isActive) {
+            scorePopups[i].lifetime -= GetFrameTime();
+            scorePopups[i].pos.y -= 30*GetFrameTime();
+            scorePopups[i].alpha = scorePopups[i].lifetime;
+
+            if(scorePopups[i].lifetime <= 0.f) {
+                scorePopups[i].isActive = false;
+            }
+        }
+    }
+
+    if(isScoreAnimating) {
+        scoreScale += scoreScaleVel * GetFrameTime();
+        if(scoreScale <= 1.f) {
+            scoreScale = 1.f;
+            isScoreAnimating = false;
+        }
+    }
 }
