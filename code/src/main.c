@@ -57,10 +57,187 @@ bool are_tiles_adjancent(Vector2 a, Vector2 b);
 void add_score_popup(int x,int y,int amount, Vector2 gridOrigin);
 
 void game_setup(void);
+void game_loop(void);
+
 
 int main(void) {
 
     game_setup();
+
+    game_loop();
+
+    StopMusicStream(bgm);
+    UnloadMusicStream(bgm);
+    UnloadSound(matchSFX);
+    UnloadTexture(background);
+    UnloadFont(scoreFont);
+
+
+    CloseAudioDevice();
+    CloseWindow();
+
+    return 0;
+}
+
+
+
+char random_tile() {
+    return TILE_CHARS[GetRandomValue(0, TILE_TYPES-1)];
+}
+
+void init_board() {
+    for(int x = 0; x < BOARD_SIZE; x++) {
+        for(int y = 0; y < BOARD_SIZE; y++) {
+            board[(BOARD_SIZE * y) + x] = random_tile();
+        }
+    }
+
+    int gridWidth = BOARD_SIZE * TILE_SIZE;
+    int gridHeight = BOARD_SIZE * TILE_SIZE;
+
+    gridOrigin = (Vector2) {
+        .x = (GetScreenWidth() - gridWidth) / 2,
+        .y = (GetScreenHeight() - gridHeight) / 2,
+    };
+    
+    if(find_matches()) {
+        resolve_matches();
+    } else {
+        tileState = STATE_IDLE;
+    }
+}
+
+bool find_matches() {
+    bool found = false;
+
+    for(int x=0; x<BOARD_SIZE; x++) {
+        for(int y=0; y<BOARD_SIZE; y++) {
+            matched[(y*BOARD_SIZE) + x] = false;
+        }
+    }
+
+    for(int x=0; x<BOARD_SIZE - 2; x++) {
+        for(int y=0; y<BOARD_SIZE; y++) {
+
+            char t = board[(y*BOARD_SIZE) + x];
+
+            if(
+                t == board[(y*BOARD_SIZE) + (x+1)] &&
+                t == board[(y*BOARD_SIZE) + (x+2)]
+            ) {
+                matched[(y*BOARD_SIZE) + x] = matched[(y*BOARD_SIZE) + (x+1)] = matched[(y*BOARD_SIZE) + (x+2)] = true;
+                score +=10;
+                found = true;
+                PlaySound(matchSFX);
+
+                isScoreAnimating = true;
+                scoreScale = 2.f;
+                scoreScaleVel = -2.5f;
+
+                add_score_popup(x, y, 10, gridOrigin);
+            }
+        }
+    }
+
+    for(int x=0; x<BOARD_SIZE; x++) {
+        for(int y=0; y<BOARD_SIZE - 2; y++) { 
+
+            char t = board[(y*BOARD_SIZE) + x];
+
+            if(
+                t == board[((y+1)*BOARD_SIZE) + x] &&
+                t == board[((y+2)*BOARD_SIZE) + x]
+            ) {
+                matched[(y*BOARD_SIZE) + x] = matched[((y+1)*BOARD_SIZE) + x] = matched[((y+2)*BOARD_SIZE) + x] = true;
+                score +=10;
+                found = true;
+                PlaySound(matchSFX);
+
+                isScoreAnimating = true;
+                scoreScale = 1.75f;
+                scoreScaleVel = -2.5f;
+
+                add_score_popup(x, y, 10, gridOrigin);
+            }
+        }
+    }
+
+    return found;
+}
+
+void resolve_matches() {
+    for(int x=0; x<BOARD_SIZE; x++) {
+        int writeY = BOARD_SIZE-1;
+        for(int y=BOARD_SIZE-1; y>=0; y--) {
+            if(!matched[(y*BOARD_SIZE) + x]) {
+                if(y != writeY) {
+                    board[(writeY*BOARD_SIZE) + x] = board[(y*BOARD_SIZE) + x];
+                    fallOffset[(writeY*BOARD_SIZE) + x] = (writeY - y) * TILE_SIZE;
+                    board[(y*BOARD_SIZE) + x] = ' ';
+                }
+                writeY--;
+            }
+        }
+
+        while(writeY >=0) {
+            board[(writeY*BOARD_SIZE) + x] = random_tile();
+            fallOffset[(writeY*BOARD_SIZE) + x] = (writeY + 1) * TILE_SIZE;
+            writeY--;
+        }
+    }
+
+    tileState = STATE_ANIMATING;
+}
+
+void swap_tiles(int x1, int y1, int x2, int y2) {
+    char temp = board[(y1*BOARD_SIZE) + x1];
+    board[(y1*BOARD_SIZE) + x1] = board[(y2*BOARD_SIZE) + x2];
+    board[(y2*BOARD_SIZE) + x2] = temp;
+}
+
+bool are_tiles_adjancent(Vector2 a, Vector2 b) {
+    return (abs((int)a.x - (int)b.x) + abs((int)a.y - (int)b.y)) == 1;
+}
+
+void add_score_popup(int x,int y,int amount, Vector2 gridOrigin) {
+    for(int i=0; i<MAX_SCORE_POPUPS; i++) {
+        if(!scorePopups[i].isActive) {
+            scorePopups[i] = (ScorePopup_t) {
+                .pos.x = gridOrigin.x + x * TILE_SIZE + TILE_SIZE / 2,
+                .pos.y = gridOrigin.y + y * TILE_SIZE + TILE_SIZE / 2,
+                .amount = amount,
+                .lifetime = 1.f,
+                .alpha = 1.f,
+                .isActive = true,
+            };
+            break;
+        }
+    }
+}
+
+void game_setup(void) {
+
+    SetRandomSeed(time(NULL));
+    const int screenWidth = 800;
+    const int screenHeight = 450;
+
+    InitWindow(screenWidth, screenHeight, "Match3");
+    SetTargetFPS(60);
+
+    InitAudioDevice();
+
+    background = LoadTexture("resources/background.jpg");
+    scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
+    bgm = LoadMusicStream("resources/prismx27s-edge-246705.mp3");
+    matchSFX = LoadSound("resources/match.mp3");
+
+    PlayMusicStream(bgm);
+
+    init_board();
+}
+
+void game_loop(void) {
+
     Vector2 mouseCoords = { 0 };
 
     while(!WindowShouldClose()) {
@@ -234,173 +411,4 @@ int main(void) {
         }
         EndDrawing();
     }
-
-    StopMusicStream(bgm);
-    UnloadMusicStream(bgm);
-    UnloadSound(matchSFX);
-    UnloadTexture(background);
-    UnloadFont(scoreFont);
-
-
-    CloseAudioDevice();
-    CloseWindow();
-
-    return 0;
-}
-
-
-
-char random_tile() {
-    return TILE_CHARS[GetRandomValue(0, TILE_TYPES-1)];
-}
-
-void init_board() {
-    for(int x = 0; x < BOARD_SIZE; x++) {
-        for(int y = 0; y < BOARD_SIZE; y++) {
-            board[(BOARD_SIZE * y) + x] = random_tile();
-        }
-    }
-
-    int gridWidth = BOARD_SIZE * TILE_SIZE;
-    int gridHeight = BOARD_SIZE * TILE_SIZE;
-
-    gridOrigin = (Vector2) {
-        .x = (GetScreenWidth() - gridWidth) / 2,
-        .y = (GetScreenHeight() - gridHeight) / 2,
-    };
-    
-    if(find_matches()) {
-        resolve_matches();
-    } else {
-        tileState = STATE_IDLE;
-    }
-}
-
-bool find_matches() {
-    bool found = false;
-
-    for(int x=0; x<BOARD_SIZE; x++) {
-        for(int y=0; y<BOARD_SIZE; y++) {
-            matched[(y*BOARD_SIZE) + x] = false;
-        }
-    }
-
-    for(int x=0; x<BOARD_SIZE - 2; x++) {
-        for(int y=0; y<BOARD_SIZE; y++) {
-
-            char t = board[(y*BOARD_SIZE) + x];
-
-            if(
-                t == board[(y*BOARD_SIZE) + (x+1)] &&
-                t == board[(y*BOARD_SIZE) + (x+2)]
-            ) {
-                matched[(y*BOARD_SIZE) + x] = matched[(y*BOARD_SIZE) + (x+1)] = matched[(y*BOARD_SIZE) + (x+2)] = true;
-                score +=10;
-                found = true;
-                PlaySound(matchSFX);
-
-                isScoreAnimating = true;
-                scoreScale = 2.f;
-                scoreScaleVel = -2.5f;
-
-                add_score_popup(x, y, 10, gridOrigin);
-            }
-        }
-    }
-
-    for(int x=0; x<BOARD_SIZE; x++) {
-        for(int y=0; y<BOARD_SIZE - 2; y++) { 
-
-            char t = board[(y*BOARD_SIZE) + x];
-
-            if(
-                t == board[((y+1)*BOARD_SIZE) + x] &&
-                t == board[((y+2)*BOARD_SIZE) + x]
-            ) {
-                matched[(y*BOARD_SIZE) + x] = matched[((y+1)*BOARD_SIZE) + x] = matched[((y+2)*BOARD_SIZE) + x] = true;
-                score +=10;
-                found = true;
-                PlaySound(matchSFX);
-
-                isScoreAnimating = true;
-                scoreScale = 1.75f;
-                scoreScaleVel = -2.5f;
-
-                add_score_popup(x, y, 10, gridOrigin);
-            }
-        }
-    }
-
-    return found;
-}
-
-void resolve_matches() {
-    for(int x=0; x<BOARD_SIZE; x++) {
-        int writeY = BOARD_SIZE-1;
-        for(int y=BOARD_SIZE-1; y>=0; y--) {
-            if(!matched[(y*BOARD_SIZE) + x]) {
-                if(y != writeY) {
-                    board[(writeY*BOARD_SIZE) + x] = board[(y*BOARD_SIZE) + x];
-                    fallOffset[(writeY*BOARD_SIZE) + x] = (writeY - y) * TILE_SIZE;
-                    board[(y*BOARD_SIZE) + x] = ' ';
-                }
-                writeY--;
-            }
-        }
-
-        while(writeY >=0) {
-            board[(writeY*BOARD_SIZE) + x] = random_tile();
-            fallOffset[(writeY*BOARD_SIZE) + x] = (writeY + 1) * TILE_SIZE;
-            writeY--;
-        }
-    }
-
-    tileState = STATE_ANIMATING;
-}
-
-void swap_tiles(int x1, int y1, int x2, int y2) {
-    char temp = board[(y1*BOARD_SIZE) + x1];
-    board[(y1*BOARD_SIZE) + x1] = board[(y2*BOARD_SIZE) + x2];
-    board[(y2*BOARD_SIZE) + x2] = temp;
-}
-
-bool are_tiles_adjancent(Vector2 a, Vector2 b) {
-    return (abs((int)a.x - (int)b.x) + abs((int)a.y - (int)b.y)) == 1;
-}
-
-void add_score_popup(int x,int y,int amount, Vector2 gridOrigin) {
-    for(int i=0; i<MAX_SCORE_POPUPS; i++) {
-        if(!scorePopups[i].isActive) {
-            scorePopups[i] = (ScorePopup_t) {
-                .pos.x = gridOrigin.x + x * TILE_SIZE + TILE_SIZE / 2,
-                .pos.y = gridOrigin.y + y * TILE_SIZE + TILE_SIZE / 2,
-                .amount = amount,
-                .lifetime = 1.f,
-                .alpha = 1.f,
-                .isActive = true,
-            };
-            break;
-        }
-    }
-}
-
-void game_setup(void) {
-
-    SetRandomSeed(time(NULL));
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
-    InitWindow(screenWidth, screenHeight, "Match3");
-    SetTargetFPS(60);
-
-    InitAudioDevice();
-
-    background = LoadTexture("resources/background.jpg");
-    scoreFont = LoadFontEx("resources/04b03.ttf", SCORE_FONT_SIZE,NULL,0);
-    bgm = LoadMusicStream("resources/prismx27s-edge-246705.mp3");
-    matchSFX = LoadSound("resources/match.mp3");
-
-    PlayMusicStream(bgm);
-
-    init_board();
 }
