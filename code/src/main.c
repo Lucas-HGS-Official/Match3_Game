@@ -58,6 +58,7 @@ void add_score_popup(int x,int y,int amount, Vector2 gridOrigin);
 
 void game_setup(void);
 void game_loop(void);
+void game_exit(void);
 
 
 int main(void) {
@@ -66,15 +67,7 @@ int main(void) {
 
     game_loop();
 
-    StopMusicStream(bgm);
-    UnloadMusicStream(bgm);
-    UnloadSound(matchSFX);
-    UnloadTexture(background);
-    UnloadFont(scoreFont);
-
-
-    CloseAudioDevice();
-    CloseWindow();
+    game_exit();
 
     return 0;
 }
@@ -411,4 +404,16 @@ void game_loop(void) {
         }
         EndDrawing();
     }
+}
+
+void game_exit(void) {
+
+    StopMusicStream(bgm);
+    UnloadMusicStream(bgm);
+    UnloadSound(matchSFX);
+    UnloadTexture(background);
+    UnloadFont(scoreFont);
+
+    CloseAudioDevice();
+    CloseWindow();
 }
