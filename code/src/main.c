@@ -55,6 +55,7 @@ void resolve_matches(void);
 void swap_tiles(int x1, int y1, int x2, int y2);
 bool are_tiles_adjancent(Vector2 a, Vector2 b);
 void add_score_popup(int x,int y,int amount, Vector2 gridOrigin);
+bool match_found(bool found, int x, int y);
 
 void game_setup(void);
 void game_loop(void);
@@ -122,15 +123,7 @@ bool find_matches() {
                 t == board[(y*BOARD_SIZE) + (x+2)]
             ) {
                 matched[(y*BOARD_SIZE) + x] = matched[(y*BOARD_SIZE) + (x+1)] = matched[(y*BOARD_SIZE) + (x+2)] = true;
-                score +=10;
-                found = true;
-                PlaySound(matchSFX);
-
-                isScoreAnimating = true;
-                scoreScale = 2.f;
-                scoreScaleVel = -2.5f;
-
-                add_score_popup(x, y, 10, gridOrigin);
+                found = match_found(found, x, y);
             }
         }
     }
@@ -145,15 +138,7 @@ bool find_matches() {
                 t == board[((y+2)*BOARD_SIZE) + x]
             ) {
                 matched[(y*BOARD_SIZE) + x] = matched[((y+1)*BOARD_SIZE) + x] = matched[((y+2)*BOARD_SIZE) + x] = true;
-                score +=10;
-                found = true;
-                PlaySound(matchSFX);
-
-                isScoreAnimating = true;
-                scoreScale = 1.75f;
-                scoreScaleVel = -2.5f;
-
-                add_score_popup(x, y, 10, gridOrigin);
+                found = match_found(found, x, y);
             }
         }
     }
@@ -209,6 +194,20 @@ void add_score_popup(int x,int y,int amount, Vector2 gridOrigin) {
             break;
         }
     }
+}
+
+bool match_found(bool found, int x, int y) {
+    score +=10;
+    found = true;
+    PlaySound(matchSFX);
+
+    isScoreAnimating = true;
+    scoreScale = 1.75f;
+    scoreScaleVel = -2.5f;
+
+    add_score_popup(x, y, 10, gridOrigin);
+
+    return found;
 }
 
 void game_setup(void) {
