@@ -27,7 +27,7 @@ code/obj/%.o : code/src/%.c
 
 clean:
 	rm -f code/obj/*.o
-	rm -f $(TARGET)
+	rm -f $(TARGET)*
 ###################################
 
 ###################################
@@ -64,4 +64,8 @@ activate_emcc:
 web_build: $(WEB_TARGET)
 
 $(WEB_TARGET):
-	emcc -o $@ code/src/main.c -Os -Wall ./$(WEB_RAYLIB)/libraylib.a -Icode/include -I/home/lhgs/raylib/src -Icode/libs/include -L$(WEB_RAYLIB) -s USE_GLFW=3 -s ASYNCIFY -DPLATFORM_WEB
+	emcc -o $@ code/src/main.c -Os -Wall ./$(WEB_RAYLIB)/libraylib.a -Icode/include -Icode/libs/include -I/home/lhgs/raylib/src -L$(WEB_RAYLIB) -s USE_GLFW=3 -s ASYNCIFY -s TOTAL_MEMORY=67108864 -s STACK_SIZE=20MB -s ASSERTIONS=1 -s EXPORTED_RUNTIME_METHODS=ccall --preload-file resources --profiling -DPLATFORM_WEB
+#emcc -o bin/game.html code/src/main.c -Os -Wall ./code/libs/static_libs/libraylib.a -Icode/include -Icode/libs/include -I/home/lhgs/raylib/src -Lcode/libs/static_libs -s USE_GLFW=3 -s ASYNCIFY -s ASSERTIONS=1 --profiling -DPLATFORM_WEB
+
+web_run:
+	emrun bin/game.html

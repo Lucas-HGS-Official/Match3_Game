@@ -2,5 +2,6 @@ bin/game
 bin/game.html
 bin/game.js
 bin/game.wasm
+bin/game.data
 code/obj/*.o
 code/libs/obj/*.o
